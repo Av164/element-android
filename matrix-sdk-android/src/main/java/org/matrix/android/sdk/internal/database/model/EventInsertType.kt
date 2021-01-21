@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.matrix.android.sdk.internal.database.model;
+package org.matrix.android.sdk.internal.database.model
 
-public enum EventInsertType {
+internal enum class EventInsertType {
     INITIAL_SYNC,
     INCREMENTAL_SYNC,
     PAGINATION,
