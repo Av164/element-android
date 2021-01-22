@@ -50,6 +50,7 @@ import org.matrix.android.sdk.internal.di.MoshiProvider
 import org.matrix.android.sdk.internal.di.UserId
 import org.matrix.android.sdk.internal.session.DefaultInitialSyncProgressService
 import org.matrix.android.sdk.internal.session.mapWithProgress
+import org.matrix.android.sdk.internal.session.reportSubtask
 import org.matrix.android.sdk.internal.session.room.membership.RoomChangeMembershipStateDataSource
 import org.matrix.android.sdk.internal.session.room.membership.RoomMemberEventHandler
 import org.matrix.android.sdk.internal.session.room.read.FullyReadContent
@@ -63,8 +64,6 @@ import org.matrix.android.sdk.internal.session.sync.model.RoomSync
 import org.matrix.android.sdk.internal.session.sync.model.RoomSyncAccountData
 import org.matrix.android.sdk.internal.session.sync.model.RoomSyncEphemeral
 import org.matrix.android.sdk.internal.session.sync.model.RoomsSyncResponse
-import org.matrix.android.sdk.internal.session.sync.poc2.InitialSyncStrategy
-import org.matrix.android.sdk.internal.session.sync.poc2.initialSyncStrategy
 import timber.log.Timber
 import javax.inject.Inject
 import kotlin.math.ceil
@@ -143,21 +142,28 @@ internal class RoomSyncHandler @Inject constructor(private val readReceiptHandle
         val numberOfChunks = ceil(listSize / maxSize.toDouble()).toInt()
 
         if (numberOfChunks > 1) {
-            val chunkSize = listSize / numberOfChunks
-            Timber.v("INIT_SYNC $listSize rooms to insert, split into $numberOfChunks sublists of $chunkSize items")
-            // I cannot find a better way to chunk a map, so chunk the keys and then create new maps
-            handlingStrategy.data.keys
-                    .chunked(chunkSize)
-                    .forEach { roomIds ->
-                        val rooms = roomIds
-                                .also { Timber.v("INIT_SYNC insert ${roomIds.size} rooms") }
-                                .map { it to (handlingStrategy.data[it] ?: error("Should not happen")) }
-                                .toMap()
-                                .mapWithProgress(reporter, R.string.initial_sync_start_importing_account_joined_rooms, 0.6f / numberOfChunks) {
-                                    handleJoinedRoom(realm, it.key, it.value.roomSync, insertType, syncLocalTimeStampMillis)
-                                }
-                        realm.insertOrUpdate(rooms)
-                    }
+            reportSubtask(reporter, R.string.initial_sync_start_importing_account_joined_rooms, numberOfChunks, 0.6f) {
+                val chunkSize = listSize / numberOfChunks
+                Timber.v("INIT_SYNC $listSize rooms to insert, split into $numberOfChunks sublists of $chunkSize items")
+                // I cannot find a better way to chunk a map, so chunk the keys and then create new maps
+                handlingStrategy.data.keys
+                        .chunked(chunkSize)
+                        .forEachIndexed { index, roomIds ->
+                            val roomEntities = roomIds
+                                    .also { Timber.v("INIT_SYNC insert ${roomIds.size} rooms") }
+                                    .map {
+                                        handleJoinedRoom(
+                                                realm,
+                                                it,
+                                                (handlingStrategy.data[it] ?: error("Should not happen")).roomSync,
+                                                insertType,
+                                                syncLocalTimeStampMillis
+                                        )
+                                    }
+                            realm.insertOrUpdate(roomEntities)
+                            reporter?.reportProgress(index + 1)
+                        }
+            }
         } else {
             // No need to split
             val rooms = handlingStrategy.data.mapWithProgress(reporter, R.string.initial_sync_start_importing_account_joined_rooms, 0.6f) {

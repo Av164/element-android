@@ -22,8 +22,8 @@ import com.squareup.moshi.JsonReader
 import com.squareup.moshi.JsonWriter
 import com.squareup.moshi.ToJson
 import org.matrix.android.sdk.internal.di.MoshiProvider
-import org.matrix.android.sdk.internal.session.sync.poc2.InitialSyncStrategy
-import org.matrix.android.sdk.internal.session.sync.poc2.initialSyncStrategy
+import org.matrix.android.sdk.internal.session.sync.InitialSyncStrategy
+import org.matrix.android.sdk.internal.session.sync.initialSyncStrategy
 import timber.log.Timber
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger

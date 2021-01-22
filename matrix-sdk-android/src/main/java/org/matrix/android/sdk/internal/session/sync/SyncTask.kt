@@ -164,6 +164,9 @@ internal class DefaultSyncTask @Inject constructor(
             initialSyncStatusRepository.setStep(InitialSyncStatus.STEP_DOWNLOADED)
         }
         handleSyncFile(workingFile)
+
+        // Delete all files
+        workingDir.deleteRecursively()
     }
 
     private suspend fun getSyncResponse(requestParams: Map<String, String>, maxNumberOfRetries: Int): Response<ResponseBody> {
@@ -203,9 +206,6 @@ internal class DefaultSyncTask @Inject constructor(
 
                 // Reset file mode
                 LazyRoomSyncJsonAdapter.reset()
-
-                // Delete all files
-                workingDir.deleteRecursively()
             }
         }
     }

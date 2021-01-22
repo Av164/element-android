@@ -24,6 +24,6 @@ internal suspend fun <T> logDuration(message: String,
     val start = System.currentTimeMillis()
     val result = block()
     val duration = System.currentTimeMillis() - start
-    Timber.v("$message -- END duration: ${duration}ms")
+    Timber.v("$message -- END duration: $duration ms")
     return result
 }
